@@ -1,7 +1,12 @@
+import com.sun.security.auth.login.ConfigFile;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Properties;
 import java.util.Scanner;
+
+import static java.lang.Integer.parseInt;
 
 public class MainHTTPServerThread extends Thread {
 
@@ -9,8 +14,18 @@ public class MainHTTPServerThread extends Thread {
     private ServerSocket server;
     private Socket client;
     private int port;
-    public MainHTTPServerThread(int port) {
-        this.port = port;
+    private Properties serverConfig;
+
+
+    /**
+     * Constructor for the main HTTP server thread
+     * @param configPath  path of the configuration file used by the HTTP server
+     * **/
+    public MainHTTPServerThread(String configPath) throws IOException {
+        serverConfig = new Properties();
+        InputStream configPathInputStream = new FileInputStream(configPath);
+        serverConfig.load(configPathInputStream);
+        port = parseInt(serverConfig.getProperty("server.port"), 10);
     }
 
 
@@ -78,14 +93,15 @@ public class MainHTTPServerThread extends Thread {
      * </ul>
      */
     @Override
-    public void run(){
-        try {
-            String server_root = "/Users/filipequintal/Desktop/server_root/"; //to be defined by the user
-            server = new ServerSocket(port);
-            System.out.println("Started Server Socket");
-            System.out.println("Working Directory = " + System.getProperty("user.dir"));
+    public void run() {
 
-            while(true){
+        try {
+            String server_root = serverConfig.getProperty("server.root");
+            server = new ServerSocket(port);
+            System.out.println("Started server socket on port: " + port);
+            System.out.println("Working directory: " + System.getProperty("user.dir"));
+
+            while (true) {
                 client = server.accept();
 
                 System.out.println();
@@ -94,6 +110,7 @@ public class MainHTTPServerThread extends Thread {
 
                 StringBuilder requestBuilder = new StringBuilder();
                 String line;
+
                 while (!(line = br.readLine()).isBlank()) {
                     requestBuilder.append(line + "\r\n");
                 }
@@ -119,8 +136,8 @@ public class MainHTTPServerThread extends Thread {
 
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException exception) {
+            exception.printStackTrace();
         }
     }
 }
