@@ -20,8 +20,9 @@ public class MainHTTPServerThread extends Thread {
 
     /**
      * Constructor for the main HTTP server thread
-     * @param configPath  path of the configuration file used by the HTTP server
-     * **/
+     *
+     * @param configPath path of the configuration file used by the HTTP server
+     **/
     public MainHTTPServerThread(String configPath) throws IOException {
         serverConfig = new Properties();
         InputStream configPathInputStream = new FileInputStream(configPath);
@@ -33,17 +34,17 @@ public class MainHTTPServerThread extends Thread {
     /**
      * Reads a server document and returns it as an array of bytes
      *
-     * @param path  path of the file
-     * @return  <code>byte[]</code> with the html document at <code>path</code>
+     * @param path path of the file
+     * @return <code>byte[]</code> with the html document at <code>path</code>
      */
-    private byte[] readBinaryFile(String path){
+    private byte[] readBinaryFile(String path) {
         byte[] content = new byte[0];
-        File f= new File(path);
+        File f = new File(path);
         try {
             FileInputStream fileInputStream = new FileInputStream(f);
             content = fileInputStream.readAllBytes();
             return content;
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return content;
         }
@@ -52,29 +53,29 @@ public class MainHTTPServerThread extends Thread {
     /**
      * Reads an HTML documents and returns it as string
      *
-     * @param path  path of the file
-     * @return  String with the html document at <code>path</code>
+     * @param path path of the file
+     * @return String with the html document at <code>path</code>
      */
-    private String readFile (String path) {
-        System.out.println( ">>> Reading the file" );
-        File original = new File( path);
+    private String readFile(String path) {
+        System.out.println(">>> Reading the file");
+        File original = new File(path);
         Scanner reader = null;
         String content = "";
         try {
-            reader = new Scanner( original );
-            while ( reader.hasNextLine( ) ) {
-                String input = reader.nextLine( );
-                if ( content.isEmpty( ) ) {
+            reader = new Scanner(original);
+            while (reader.hasNextLine()) {
+                String input = reader.nextLine();
+                if (content.isEmpty()) {
                     content = input;
                 } else {
                     content = content + "\n" + input;
                 }
             }
-        } catch ( Exception e ) {
-            e.printStackTrace( );
+        } catch (Exception e) {
+            e.printStackTrace();
             return "";
         }
-        System.out.println( ">>> Done reading the file" );
+        System.out.println(">>> Done reading the file");
         return content;
     }
 
@@ -123,7 +124,7 @@ public class MainHTTPServerThread extends Thread {
                 String route = tokens[1];
                 System.out.println(request);
 
-                //* Serve default page
+                //* Serve default page when client requests the root route
                 if (Objects.equals(route, "/")) {
                     String serverRootRoute = serverConfig.getProperty("server.root");
                     String defaultFilename = serverConfig.getProperty("server.default.page");
@@ -138,17 +139,39 @@ public class MainHTTPServerThread extends Thread {
                     clientOutput.write("\r\n\r\n".getBytes());
                     clientOutput.flush();
                     client.close();
-                } else {
+                }
+
+                //* Serve non default page when client requests non root route
+                else {
                     String serverRootRoute = serverConfig.getProperty("server.root");
-                    byte[] content = readBinaryFile(serverRootRoute + route);
-                    OutputStream clientOutput = client.getOutputStream();
-                    clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
-                    clientOutput.write(("ContentType: text/html\r\n").getBytes());
-                    clientOutput.write("\r\n".getBytes());
-                    clientOutput.write(content);
-                    clientOutput.write("\r\n\r\n".getBytes());
-                    clientOutput.flush();
-                    client.close();
+
+                    // If route file exists, serve requested route
+                    File f = new File(serverRootRoute + route);
+                    if (f.exists() && f.isFile()) {
+                        byte[] content = readBinaryFile(serverRootRoute + route);
+                        OutputStream clientOutput = client.getOutputStream();
+                        clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
+                        clientOutput.write(("ContentType: text/html\r\n").getBytes());
+                        clientOutput.write("\r\n".getBytes());
+                        clientOutput.write(content);
+                        clientOutput.write("\r\n\r\n".getBytes());
+                        clientOutput.flush();
+                        client.close();
+                    }
+
+                    // If the requested route doesn't have a file, serve the error page
+                    else {
+                        String pageNotFoundFile = serverConfig.getProperty("server.page.404");
+                        byte[] content = readBinaryFile(serverRootRoute + "../server/" + pageNotFoundFile);
+                        OutputStream clientOutput = client.getOutputStream();
+                        clientOutput.write("HTTP/1.1 404 Not Found\r\n".getBytes());
+                        clientOutput.write(("ContentType: text/html\r\n").getBytes());
+                        clientOutput.write("\r\n".getBytes());
+                        clientOutput.write(content);
+                        clientOutput.write("\r\n\r\n".getBytes());
+                        clientOutput.flush();
+                        client.close();
+                    }
                 }
 
             }
