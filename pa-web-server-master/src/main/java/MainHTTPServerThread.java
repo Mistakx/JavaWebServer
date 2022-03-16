@@ -3,6 +3,7 @@ import com.sun.security.auth.login.ConfigFile;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -96,7 +97,6 @@ public class MainHTTPServerThread extends Thread {
     public void run() {
 
         try {
-            String server_root = serverConfig.getProperty("server.root");
             server = new ServerSocket(port);
             System.out.println("Started server socket on port: " + port);
             System.out.println("Working directory: " + System.getProperty("user.dir"));
@@ -123,16 +123,33 @@ public class MainHTTPServerThread extends Thread {
                 String route = tokens[1];
                 System.out.println(request);
 
-                byte[] content =  readBinaryFile(server_root+route);
-                OutputStream clientOutput = client.getOutputStream();
-                clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
-                clientOutput.write(("ContentType: text/html\r\n").getBytes());
-                clientOutput.write("\r\n".getBytes());
-                clientOutput.write(content);
-                clientOutput.write("\r\n\r\n".getBytes());
-                clientOutput.flush();
-                client.close();
-
+                //* Serve default page
+                if (Objects.equals(route, "/")) {
+                    String serverRootRoute = serverConfig.getProperty("server.root");
+                    String defaultFilename = serverConfig.getProperty("server.default.page");
+                    String defaultFileExtension = serverConfig.getProperty("server.default.page.extension");
+                    String defaultFile = defaultFilename + "." + defaultFileExtension;
+                    byte[] content = readBinaryFile(serverRootRoute + "/" + defaultFile);
+                    OutputStream clientOutput = client.getOutputStream();
+                    clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
+                    clientOutput.write(("ContentType: text/html\r\n").getBytes());
+                    clientOutput.write("\r\n".getBytes());
+                    clientOutput.write(content);
+                    clientOutput.write("\r\n\r\n".getBytes());
+                    clientOutput.flush();
+                    client.close();
+                } else {
+                    String serverRootRoute = serverConfig.getProperty("server.root");
+                    byte[] content = readBinaryFile(serverRootRoute + route);
+                    OutputStream clientOutput = client.getOutputStream();
+                    clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
+                    clientOutput.write(("ContentType: text/html\r\n").getBytes());
+                    clientOutput.write("\r\n".getBytes());
+                    clientOutput.write(content);
+                    clientOutput.write("\r\n\r\n".getBytes());
+                    clientOutput.flush();
+                    client.close();
+                }
 
             }
 
