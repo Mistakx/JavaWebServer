@@ -6,9 +6,15 @@ import java.util.Properties;
 /**
  * The class of the thread responsible for serving each client accepted by the server.
  */
-public class serveClientThread extends Thread {
+public class ServeClientThread extends Thread {
 
+    /**
+     * The client's socket, created when the client requested some route.
+     */
     private final Socket clientSocket;
+    /**
+     * The server configuration, created when the "AcceptClients" thread was instantiated.
+     */
     private final Properties serverConfig;
 
     /**
@@ -16,7 +22,7 @@ public class serveClientThread extends Thread {
      *
      * @param clientSocket socket of the client that is going to get served by this thread.
      **/
-    public serveClientThread(Socket clientSocket, Properties serverConfig) {
+    public ServeClientThread(Socket clientSocket, Properties serverConfig) {
         this.clientSocket = clientSocket;
         this.serverConfig = serverConfig;
     }
@@ -43,7 +49,7 @@ public class serveClientThread extends Thread {
     /**
      * Serves a file's content to the client.
      *
-     * @param fileContent the root folder path to be served by the server.
+     * @param fileContent the file's content in bytes to be served by the server.
      * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      */
     private void serveFileContent(byte[] fileContent) throws IOException {
@@ -59,7 +65,6 @@ public class serveClientThread extends Thread {
 
     /**
      * Serves the error page to the client.
-     *
      * @param serverRootRoute the root folder path to be served by the server.
      * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      */

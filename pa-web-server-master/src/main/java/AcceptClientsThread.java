@@ -1,9 +1,8 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Objects;
+import java.util.ArrayList;
 import java.util.Properties;
-import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -14,7 +13,7 @@ import static java.lang.Integer.parseInt;
  * The main HTTP thread is simply responsible for accepting the clients.
  * After accepting the clients, the main HTTP creates a new thread to serve the client.
  */
-public class MainHTTPServerThread extends Thread {
+public class AcceptClientsThread extends Thread {
 
     /**
      * The port the HTTP server is going to run in.
@@ -24,33 +23,27 @@ public class MainHTTPServerThread extends Thread {
      * The server configurations, imported from the config file.
      */
     private final Properties serverConfig;
+    /**
+     * The array that saves the client sockets as they are accepted.
+     */
+    ArrayList<Socket> clientSockets = new ArrayList<Socket>();
 
     /**
      * Constructor for the main HTTP server thread
      * @param configPath path of the configuration file used by the HTTP server
      **/
-    public MainHTTPServerThread(String configPath) throws IOException {
+    public AcceptClientsThread(String configPath) throws IOException {
         serverConfig = new Properties();
         InputStream configPathInputStream = new FileInputStream(configPath);
         serverConfig.load(configPathInputStream);
         port = parseInt(serverConfig.getProperty("server.port"), 10);
     }
 
-
     /**
-     * <b>Completar pelos alunos..</b>
-     * <p>
-     * Main cycle of the server, it creates the {@link ServerSocket} at the specified port, and then it creates a new {@link Socket}
-     * for each new request
-     * <p>
-     * To refactor with:
-     * <ul>
-     *     <li>loading the server configurations from the server.config file</li>
-     *     <li>Introduce parallelism to handle the requests</li>
-     *     <li>Introduce parallelism to handle the documents</li>
-     *     <li>Parse the request according as necessary for the implementation</li>
-     *     <li>...</li>
-     * </ul>
+     * Main cycle of the server, it creates the {@link ServerSocket} at the specified port. <p>
+     * The server then creates a {@link ExecutorService} thread pool to continuously accept clients. <p>
+     * After accepting a new client, a {@link Socket} is created,
+     * and a new {@link ServeClientThread} is added to the thread pool to serve that client.
      */
     @Override
     public void run() {
@@ -66,10 +59,13 @@ public class MainHTTPServerThread extends Thread {
             //noinspection InfiniteLoopStatement
             while (true) {
 
-                Socket newClient = server.accept();
-                System.out.println("\nDebug: got new client " + newClient.toString());
-                Runnable r1 = new serveClientThread(newClient, serverConfig);
-                clientPool.execute(r1);
+                Socket newClientSocket = server.accept(); // Accept a client and create a socket
+                clientSockets.add(newClientSocket); // Adds the accepted client to the clients array
+                System.out.println("\nDebug: got new client " + newClientSocket.toString());
+                System.out.println("Array: " + clientSockets.toString());
+                Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
+                Runnable newClientThread = new ServeClientThread(clientAdded, serverConfig); // Create a new thread to serve the accepted client
+                clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
 
             }
 
