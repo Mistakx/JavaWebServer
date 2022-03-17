@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -16,13 +17,18 @@ public class ServeClientThread extends Thread {
      * The server configuration, created when the "AcceptClients" thread was instantiated.
      */
     private final Properties serverConfig;
+    /**
+     * The server array that contains the clients sockets.
+     */
+    private ArrayList<Socket> clientSockets;
 
     /**
      * Constructor for the various threads that serve a single accepted client.
      *
      * @param clientSocket socket of the client that is going to get served by this thread.
      **/
-    public ServeClientThread(Socket clientSocket, Properties serverConfig) {
+    public ServeClientThread(ArrayList<Socket> clientSockets, Socket clientSocket, Properties serverConfig) {
+        this.clientSockets = clientSockets;
         this.clientSocket = clientSocket;
         this.serverConfig = serverConfig;
     }
@@ -65,6 +71,7 @@ public class ServeClientThread extends Thread {
 
     /**
      * Serves the error page to the client.
+     *
      * @param serverRootRoute the root folder path to be served by the server.
      * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      */
@@ -149,6 +156,11 @@ public class ServeClientThread extends Thread {
 
         } catch (IOException exception) {
             exception.printStackTrace();
+
+        } finally {
+            clientSockets.remove(clientSocket);
+            System.out.println("DEBUG");
+            System.out.println(clientSockets.toString());
         }
     }
 }

@@ -64,7 +64,7 @@ public class AcceptClientsThread extends Thread {
                 System.out.println("\nDebug: got new client " + newClientSocket.toString());
                 System.out.println("Array: " + clientSockets.toString());
                 Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
-                Runnable newClientThread = new ServeClientThread(clientAdded, serverConfig); // Create a new thread to serve the accepted client
+                Runnable newClientThread = new ServeClientThread(clientSockets, clientAdded, serverConfig); // Create a new thread to serve the accepted client
                 clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
 
             }
