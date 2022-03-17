@@ -1,5 +1,3 @@
-import com.sun.security.auth.login.ConfigFile;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,7 +15,6 @@ public class MainHTTPServerThread extends Thread {
     private int port;
     private Properties serverConfig;
 
-
     /**
      * Constructor for the main HTTP server thread
      *
@@ -29,7 +26,6 @@ public class MainHTTPServerThread extends Thread {
         serverConfig.load(configPathInputStream);
         port = parseInt(serverConfig.getProperty("server.port"), 10);
     }
-
 
     /**
      * Reads a server document and returns it as an array of bytes
@@ -125,52 +121,38 @@ public class MainHTTPServerThread extends Thread {
                 System.out.println(request);
 
                 //* Serve default page when client requests the root route
+                String serverRootPath = serverConfig.getProperty("server.root");
+                File f = new File(serverRootPath + route);
                 if (Objects.equals(route, "/")) {
-                    String serverRootRoute = serverConfig.getProperty("server.root");
-                    String defaultFilename = serverConfig.getProperty("server.default.page");
-                    String defaultFileExtension = serverConfig.getProperty("server.default.page.extension");
-                    String defaultFile = defaultFilename + "." + defaultFileExtension;
-                    byte[] content = readBinaryFile(serverRootRoute + "/" + defaultFile);
-                    OutputStream clientOutput = client.getOutputStream();
-                    clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
-                    clientOutput.write(("ContentType: text/html\r\n").getBytes());
-                    clientOutput.write("\r\n".getBytes());
-                    clientOutput.write(content);
-                    clientOutput.write("\r\n\r\n".getBytes());
-                    clientOutput.flush();
-                    client.close();
-                }
-
-                //* Serve non default page when client requests non root route
-                else {
-                    String serverRootRoute = serverConfig.getProperty("server.root");
 
                     // If route file exists, serve requested route
-                    File f = new File(serverRootRoute + route);
                     if (f.exists() && f.isFile()) {
-                        byte[] content = readBinaryFile(serverRootRoute + route);
-                        OutputStream clientOutput = client.getOutputStream();
-                        clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
-                        clientOutput.write(("ContentType: text/html\r\n").getBytes());
-                        clientOutput.write("\r\n".getBytes());
-                        clientOutput.write(content);
-                        clientOutput.write("\r\n\r\n".getBytes());
-                        clientOutput.flush();
-                        client.close();
+                        String defaultFilename = serverConfig.getProperty("server.default.page");
+                        String defaultFileExtension = serverConfig.getProperty("server.default.page.extension");
+                        String defaultFile = defaultFilename + "." + defaultFileExtension;
+                        byte[] fileContent = readBinaryFile(serverRootPath + "/" + defaultFile);
+                        serveFileContent(fileContent);
                     }
 
                     // If the requested route doesn't have a file, serve the error page
                     else {
-                        String pageNotFoundFile = serverConfig.getProperty("server.page.404");
-                        byte[] content = readBinaryFile(serverRootRoute + "../server/" + pageNotFoundFile);
-                        OutputStream clientOutput = client.getOutputStream();
-                        clientOutput.write("HTTP/1.1 404 Not Found\r\n".getBytes());
-                        clientOutput.write(("ContentType: text/html\r\n").getBytes());
-                        clientOutput.write("\r\n".getBytes());
-                        clientOutput.write(content);
-                        clientOutput.write("\r\n\r\n".getBytes());
-                        clientOutput.flush();
-                        client.close();
+                        serveErrorPage(serverRootPath);
+                    }
+
+                }
+
+                //* Serve non default page when client requests non root route
+                else {
+
+                    // If route file exists, serve requested route
+                    if (f.exists() && f.isFile()) {
+                        byte[] content = readBinaryFile(serverRootPath + route);
+                        serveFileContent(content);
+                    }
+
+                    // If the requested route doesn't have a file, serve the error page
+                    else {
+                        serveErrorPage(serverRootPath);
                     }
                 }
 
@@ -179,5 +161,39 @@ public class MainHTTPServerThread extends Thread {
         } catch (IOException exception) {
             exception.printStackTrace();
         }
+    }
+
+    /**
+     * Serves a file's content to the client.
+     * @param fileContent the root folder path to be served by the server.
+     * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
+     */
+    private void serveFileContent(byte[] fileContent) throws IOException {
+        OutputStream clientOutput = client.getOutputStream();
+        clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
+        clientOutput.write(("ContentType: text/html\r\n").getBytes());
+        clientOutput.write("\r\n".getBytes());
+        clientOutput.write(fileContent);
+        clientOutput.write("\r\n\r\n".getBytes());
+        clientOutput.flush();
+        client.close();
+    }
+
+    /**
+     * Serves the error page to the client.
+     * @param serverRootRoute the root folder path to be served by the server.
+     * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
+     */
+    private void serveErrorPage(String serverRootRoute) throws IOException {
+        String pageNotFoundFile = serverConfig.getProperty("server.page.404");
+        byte[] content = readBinaryFile(serverRootRoute + "../server/" + pageNotFoundFile);
+        OutputStream clientOutput = client.getOutputStream();
+        clientOutput.write("HTTP/1.1 404 Not Found\r\n".getBytes());
+        clientOutput.write(("ContentType: text/html\r\n").getBytes());
+        clientOutput.write("\r\n".getBytes());
+        clientOutput.write(content);
+        clientOutput.write("\r\n\r\n".getBytes());
+        clientOutput.flush();
+        client.close();
     }
 }
