@@ -12,16 +12,17 @@ public class Main {
     public static void main(String[] args){
 
         try {
-            serverThread = new MainHTTPServerThread( "/media/shared/JavaWebServer/pa-web-server-master/server/server.config");
+            serverThread = new MainHTTPServerThread( "/media/shared/PA/JavaWebServer/pa-web-server-master/server/server.config");
         } catch (IOException configFileException) {
-            System.out.println("Error when opening configuration file.");
             System.out.println(configFileException.getMessage());
+            return;
         }
         serverThread.start();
         try {
             serverThread.join();
         } catch (InterruptedException exception) {
-            exception.printStackTrace();
+            System.out.println(exception.getMessage());
+            return;
         }
     }
 }
