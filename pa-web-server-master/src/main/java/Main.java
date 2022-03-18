@@ -8,21 +8,18 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Main {
 
-    private ReentrantLock currentlyOpenedDocumentsLock = new ReentrantLock();
-    private Set<String> currentlyOpenedDocuments = new HashSet<String>();
-
-
     /**
      * The Java main method is the entry point of any java program.
+     *
      * @param args command line arguments in the form of string values.
      */
-    public static void main(String[] args){
+    public static void main(String[] args) {
 
         AcceptClientsThread acceptClientsThread; // The HTTP Server thread responsible for accepting the clients.
 
         //* Create the main server thread, responsible for accepting the clients
         try {
-            acceptClientsThread = new AcceptClientsThread( "/media/shared/PA/JavaWebServer/pa-web-server-master/server/server.config");
+            acceptClientsThread = new AcceptClientsThread("/media/shared/PA/JavaWebServer/pa-web-server-master/server/server.config");
         } catch (IOException configFileException) {
             System.out.println(configFileException.getMessage());
             return;
@@ -38,4 +35,5 @@ public class Main {
             System.out.println(exception.getMessage());
         }
     }
+
 }
