@@ -69,7 +69,7 @@ public class AcceptClientsThread extends Thread {
         try {
 
             ServerSocket server = new ServerSocket(port);
-            ExecutorService clientPool = Executors.newFixedThreadPool(2);
+            ExecutorService clientPool = Executors.newFixedThreadPool(10);
             System.out.println("Started server socket on port: " + port);
             System.out.println("Working directory: " + System.getProperty("user.dir") + "\n");
 

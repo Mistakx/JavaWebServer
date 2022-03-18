@@ -1,6 +1,9 @@
 import java.io.*;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -20,20 +23,20 @@ public class ServeClientThread extends Thread {
      * The lock responsible for the client sockets array,
      * which contains all the clients that are making requests at a given point in time.
      */
-    private ReentrantLock clientSocketsLock = new ReentrantLock();
+    private final ReentrantLock clientSocketsLock = new ReentrantLock();
     /**
      * The server array that contains the clients sockets.
      */
-    private ArrayList<Socket> clientSockets;
+    private final ArrayList<Socket> clientSockets;
     /**
      * The lock responsible for the opened documents array,
      * which contains a list of the documents the clients are requesting at a given point in time.
      */
-    private ReentrantLock currentlyOpenedDocumentsLock;
+    private final ReentrantLock currentlyOpenedDocumentsLock;
     /**
      * Contains a list of the documents the clients are requesting at a given point in time.
      */
-    private Set<String> currentlyOpenedDocuments;
+    private final Set<String> currentlyOpenedDocuments;
 
     /**
      * Constructor for the various threads that serve a single accepted client.
@@ -85,7 +88,8 @@ public class ServeClientThread extends Thread {
 
         if (currentlyOpenedDocuments.contains(documentPath)) {
 
-            System.out.println("Another thread has the document currently opened");
+            System.out.println("Another thread has the document currently opened.");
+            currentlyOpenedDocumentsLock.unlock();
             System.out.println("Unlocked documents opened lock.\n");
             return true;
 
@@ -179,7 +183,7 @@ public class ServeClientThread extends Thread {
             // If document is already being served, wait till it isn't
             if (documentAlreadyBeingServed(filePath)) {
                 try {
-                    Thread.sleep(1);
+                    Thread.sleep(3000);
                 } catch (Exception exception) {
                     System.out.println(exception.getMessage());
                 }
@@ -193,6 +197,13 @@ public class ServeClientThread extends Thread {
                 currentlyOpenedDocuments.add(filePath);
                 currentlyOpenedDocumentsLock.unlock();
 
+                //* Sleep 10 seconds
+                try {
+                    Thread.sleep(10000);
+                } catch (Exception exception) {
+                    System.out.println(exception.getMessage());
+                }
+
                 byte[] fileContent = readBinaryFile(filePath);
                 OutputStream clientOutput = clientSocket.getOutputStream();
                 clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
@@ -204,6 +215,7 @@ public class ServeClientThread extends Thread {
                 clientSocket.close();
                 servedDocument = true;
 
+                System.out.println("REACHED LOCK TO STOP SERVING");
                 currentlyOpenedDocumentsLock.lock();
                 System.out.println("Stopped serving: " + filePath + "\n");
                 currentlyOpenedDocuments.remove(filePath);
@@ -244,14 +256,13 @@ public class ServeClientThread extends Thread {
 
                 if (defaultPage.exists() && defaultPage.isFile()) {
 
-                    System.out.println("Started trying to serve default route");
+                    System.out.println("Started trying to serve default route.");
                     serveFileContent(serverRootPath + "/" + defaultFile);
 
                 } else {
 
                     // TODO: Serve predefined file if the error page isn't found
                     System.out.println("Started serving error route. (default route)");
-                    System.out.println(serverRootPath + route);
                     serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile);
 
                 }
@@ -270,7 +281,6 @@ public class ServeClientThread extends Thread {
 
                     // TODO: Serve predefined file if the error page isn't found
                     System.out.println("Serving error route. (non default route)");
-                    System.out.println(serverRootPath + route);
                     serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile);
                 }
             }
@@ -284,13 +294,6 @@ public class ServeClientThread extends Thread {
             clientSocketsLock.lock();
             clientSockets.remove(clientSocket);
             clientSocketsLock.unlock();
-
-            //* Sleep 10 seconds
-            try {
-                Thread.sleep(0);
-            } catch (Exception exception) {
-                System.out.println(exception.getMessage());
-            }
 
         }
 
