@@ -11,7 +11,7 @@ public class Main {
     /**
      * The Java main method is the entry point of any java program.
      *
-     * @param args command line arguments in the form of string values.
+     * @param args Command line arguments in the form of string values.
      */
     public static void main(String[] args) {
 
@@ -19,6 +19,7 @@ public class Main {
 
         //* Create the main server thread, responsible for accepting the clients
         try {
+            // TODO: Server settings should be initialized here.
             acceptClientsThread = new AcceptClientsThread("/media/shared/PA/JavaWebServer/pa-web-server-master/server/server.config");
         } catch (IOException configFileException) {
             System.out.println(configFileException.getMessage());

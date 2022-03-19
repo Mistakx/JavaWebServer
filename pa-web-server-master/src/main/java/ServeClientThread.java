@@ -16,46 +16,54 @@ public class ServeClientThread extends Thread {
      */
     private final Socket clientSocket;
     /**
-     * The server configuration, created when the "AcceptClients" thread was instantiated.
+     * The server's configuration, imported from the configuration file when the server started.
      */
     private final Properties serverConfig;
+
     /**
      * The lock responsible for the client sockets array,
      * which contains all the clients that are making requests at a given point in time.
      */
-    private final ReentrantLock clientSocketsLock = new ReentrantLock();
+    private final ReentrantLock clientSocketsLock;
     /**
-     * The server array that contains the clients sockets.
+     * The server's array that contains the sockets of each request being made at a given point in time.
      */
     private final ArrayList<Socket> clientSockets;
+
     /**
      * The lock responsible for the opened documents array,
      * which contains a list of the documents the clients are requesting at a given point in time.
      */
     private final ReentrantLock currentlyOpenedDocumentsLock;
     /**
-     * Contains a list of the documents the clients are requesting at a given point in time.
+     * Contains a list of the documents being requested at a given point in time.
      */
     private final Set<String> currentlyOpenedDocuments;
 
     /**
-     * Constructor for the various threads that serve a single accepted client.
-     *
-     * @param clientSocket socket of the client that is going to get served by this thread.
+     * Constructor for the various threads that serve a single accepted request.
+     * @param serverConfig The server's configuration, imported from the configuration file when the server started.
+     * @param clientSocket The client's socket, created when the client requested some route.
+     * @param clientSocketsLock The lock responsible for the client sockets array.
+     * @param clientSockets Array that contains the sockets of each request being made at a given point in time.
+     * @param currentlyOpenedDocumentsLock The lock responsible for the opened documents array.
+     * @param currentlyOpenedDocuments Contains a list of the documents being requested at a given point in time.
      **/
-    public ServeClientThread(ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, Socket clientSocket, Properties serverConfig, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments) {
-        this.clientSockets = clientSockets;
-        this.clientSocket = clientSocket;
+    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments) {
         this.serverConfig = serverConfig;
+        this.clientSocket = clientSocket;
+
+        this.clientSocketsLock = clientSocketsLock;
+        this.clientSockets = clientSockets;
+
         this.currentlyOpenedDocumentsLock = currentlyOpenedDocumentsLock;
         this.currentlyOpenedDocuments = currentlyOpenedDocuments;
     }
 
     /**
-     * Reads a server document and returns it as an array of bytes
-     *
-     * @param filePath path of the file
-     * @return <code>byte[]</code> with the html document at <code>path</code>
+     * Reads a document and returns it as an array of bytes.
+     * @param filePath Path of the file to return as an array of bytes.
+     * @return <code>byte[]</code> - Array of bytes that constitute a given file.
      */
     private byte[] readBinaryFile(String filePath) {
         byte[] content = new byte[0];
@@ -71,10 +79,13 @@ public class ServeClientThread extends Thread {
     }
 
     /**
-     * Checks if another thread is already serving a document
-     *
+     * Checks if another thread is already serving a document.
+     * @param documentPath The document's path to check.
      * @return <code>boolean</code>
-     * @params documentPath the document's path to check
+     * <ul>
+     * <li> <strong>true - </strong>the document is already being served by another thread. </li>
+     * <li> <strong>false - </strong>the document isn't already being served by another thread. </li>
+     * </ul>
      */
     private boolean documentAlreadyBeingServed(String documentPath) {
 
@@ -106,9 +117,11 @@ public class ServeClientThread extends Thread {
 
     /**
      * Checks if the HTML error page is properly configured in the server configurations file.
-     *
-     * @return true if the settings error page is properly configured, false otherwise.
-     * // TODO: Format javadoc
+     * @return <code>boolean</code>
+     * <ul>
+     *     <li> <strong>true -</strong> if the settings error page is properly configured.</li>
+     *     <li> <strong>false -</strong> if the settings error page isn't properly configured.</li>
+     * </ul>
      */
     private boolean htmlErrorPageExists() {
 
@@ -124,9 +137,9 @@ public class ServeClientThread extends Thread {
     }
 
     /**
-     * Gets the client request from the client's socket, and parses the route the client is requesting.
-     *
-     * @return the route the client is requesting.
+     * Parses the route the client is requesting from the socket of the request.
+     * @return <code>String</code> - the route the client is requesting.
+     * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      */
     private String parseRequest() throws IOException {
 
@@ -162,7 +175,7 @@ public class ServeClientThread extends Thread {
              */
         String request = requestBuilder.toString();
         String[] tokens = request.split(" ");
-        // System.out.println(request);
+        System.out.println(request);
 
         return tokens[1];
     }
@@ -183,7 +196,7 @@ public class ServeClientThread extends Thread {
             // If document is already being served, wait till it isn't
             if (documentAlreadyBeingServed(filePath)) {
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(2000);
                 } catch (Exception exception) {
                     System.out.println(exception.getMessage());
                 }
@@ -215,7 +228,6 @@ public class ServeClientThread extends Thread {
                 clientSocket.close();
                 servedDocument = true;
 
-                System.out.println("REACHED LOCK TO STOP SERVING");
                 currentlyOpenedDocumentsLock.lock();
                 System.out.println("Stopped serving: " + filePath + "\n");
                 currentlyOpenedDocuments.remove(filePath);

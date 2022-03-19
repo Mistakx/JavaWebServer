@@ -12,9 +12,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import static java.lang.Integer.parseInt;
 
 /**
- * The main HTTP server thread class.
- * The main HTTP thread is simply responsible for accepting the clients.
- * After accepting the clients, the main HTTP creates a new thread to serve the client.
+ * The class of the thread responsible for accepting the HTTP server's clients.
+ * After accepting a client, a new thread is created to serve that individual client.
  */
 public class AcceptClientsThread extends Thread {
 
@@ -23,32 +22,34 @@ public class AcceptClientsThread extends Thread {
      */
     private final int port;
     /**
-     * The server configurations, imported from the config file.
+     * The server's configuration, imported from the configuration file when the server started.
      */
     private final Properties serverConfig;
+
     /**
      * The lock responsible for the client sockets array,
      * which contains all the clients that are making requests at a given point in time.
      */
     private ReentrantLock clientSocketsLock = new ReentrantLock();
     /**
-     * The array that saves the client sockets as they are accepted.
+     * The server's array that contains the sockets of each request being made at a given point in time.
      */
     ArrayList<Socket> clientSockets = new ArrayList<Socket>();
+
     /**
      * The lock responsible for the opened documents array,
      * which contains a list of the documents the clients are requesting at a given point in time.
      */
     private ReentrantLock currentlyOpenedDocumentsLock = new ReentrantLock();
     /**
-     * Contains a list of the documents the clients are requesting at a given point in time.
+     * Contains a list of the documents being requested at a given point in time.
      */
     private Set<String> currentlyOpenedDocuments = new HashSet<String>();
 
     /**
-     * Constructor for the main HTTP server thread
-     *
-     * @param configPath path of the configuration file used by the HTTP server
+     * Constructor for the thread responsible for accepting the clients.
+     * @param configPath path of the configuration file used by the HTTP server.
+     * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      **/
     public AcceptClientsThread(String configPath) throws IOException {
         serverConfig = new Properties();
@@ -85,7 +86,7 @@ public class AcceptClientsThread extends Thread {
                 System.out.println("New client accepted: " + newClientSocket.toString());
                 System.out.println("Clients connected: " + clientSockets.toString()+ "\n");
                 Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
-                Runnable newClientThread = new ServeClientThread(clientSocketsLock, clientSockets, clientAdded, serverConfig, currentlyOpenedDocumentsLock, currentlyOpenedDocuments); // Create a new thread to serve the accepted client
+                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments); // Create a new thread to serve the accepted client
                 clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
 
             }
