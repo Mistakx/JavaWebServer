@@ -144,20 +144,35 @@ public class Main {
             try {
                 serverSocket = new ServerSocket(port);
                 System.out.println("Started server on port: " + port);
+                System.out.println("Working directory: " + System.getProperty("user.dir") + "\n");
             } catch (IOException exception) {
                 System.out.println(exception.getMessage());
                 return;
             }
 
             //* Create and start one accept clients thread, responsible for accepting the clients
-            AcceptClientsThread acceptClientsThread; // The HTTP Server thread responsible for accepting the clients.
-            acceptClientsThread = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
+            AcceptClientsThread acceptClientsThread = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
             acceptClientsThread.start();
+//            AcceptClientsThread acceptClientsThread1 = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
+//            acceptClientsThread1.start();
+//            AcceptClientsThread acceptClientsThread2 = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
+//            acceptClientsThread2.start();
+//            AcceptClientsThread acceptClientsThread3 = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
+//            acceptClientsThread3.start();
+//            AcceptClientsThread acceptClientsThread4 = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
+//            acceptClientsThread4.start();
 
             //* Create and start one log requests thread, responsible for logging the clients' requests
-            LogRequestsInformationThread logRequestsInformationThread;
-            logRequestsInformationThread = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 1000);
+            LogRequestsInformationThread logRequestsInformationThread = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
             logRequestsInformationThread.start();
+//            LogRequestsInformationThread logRequestsInformationThread1 = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
+//            logRequestsInformationThread1.start();
+//            LogRequestsInformationThread logRequestsInformationThread2 = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
+//            logRequestsInformationThread2.start();
+//            LogRequestsInformationThread logRequestsInformationThread3 = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
+//            logRequestsInformationThread3.start();
+//            LogRequestsInformationThread logRequestsInformationThread4 = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
+//            logRequestsInformationThread4.start();
 
             //* Join the started threads
             try {

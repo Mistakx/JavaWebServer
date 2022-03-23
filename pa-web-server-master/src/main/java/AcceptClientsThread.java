@@ -93,7 +93,6 @@ public class AcceptClientsThread extends Thread {
         try {
 
             ExecutorService clientPool = Executors.newFixedThreadPool(10);
-            System.out.println("Working directory: " + System.getProperty("user.dir") + "\n");
 
             //* Continuously accept clients, and spawn a thread to serve them
             //noinspection InfiniteLoopStatement
@@ -103,11 +102,11 @@ public class AcceptClientsThread extends Thread {
 
                 clientSocketsLock.lock();
                 clientSockets.add(newClientSocket); // Adds the accepted client to the clients array
-                clientSocketsLock.unlock();
                 System.out.println("New client accepted: " + newClientSocket.toString());
                 System.out.println("Clients connected: " + clientSockets + "\n");
                 Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
-                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation, 1000, 3000); // Create a new thread to serve the accepted client
+                clientSocketsLock.unlock();
+                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation, 1, 0); // Create a new thread to serve the accepted client
                 clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
 
             }
