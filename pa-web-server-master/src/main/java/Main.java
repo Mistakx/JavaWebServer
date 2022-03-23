@@ -92,24 +92,23 @@ public class Main {
     }
 
     /**
-     * Checks if the server roots page is properly configured in the server configurations file.
+     * Checks if the server roots folder is properly configured in the server configurations file.
      *
      * @return <code>boolean</code>
      * <ul>
-     *     <li> <strong>true -</strong> if the root is properly configured.</li>
-     *     <li> <strong>false -</strong> if the root isn't properly configured.</li>
+     *     <li> <strong>true -</strong> if the root folder is properly configured.</li>
+     *     <li> <strong>false -</strong> if the root folder isn't properly configured.</li>
      * </ul>
      */
-    private static boolean rootExists() {
+    private static boolean rootFolderExists() {
 
         String rootPath = serverConfig.getProperty("server.root");
 
         File f = new File(rootPath);
 
-        return f.exists();
+        return f.exists() && !f.isFile();
 
     }
-
 
     /**
      * The Java main method is the entry point of any java program.
@@ -135,7 +134,7 @@ public class Main {
                 return;
             }
 
-             if (!rootExists()) {
+             if (!rootFolderExists()) {
                  System.out.println("Server root path is not properly configured.");
                  return;
              }

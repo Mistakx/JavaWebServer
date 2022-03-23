@@ -85,7 +85,7 @@ public class ServeClientThread extends Thread {
     private void writeToLog(String requestMethod, String requestRoute) {
 
         requestsInformationLock.lock();
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss:mm");
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss:SSS");
         LocalDateTime now = LocalDateTime.now();
         String requestInformation = dtf.format(now) + "-Method:" + requestMethod + "-Route:" + requestRoute + "-" + clientSocket.getRemoteSocketAddress().toString().split(":")[0];
         requestsInformation.add(requestInformation);
