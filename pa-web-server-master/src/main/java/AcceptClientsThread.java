@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -24,6 +25,10 @@ public class AcceptClientsThread extends Thread {
      * The server's configuration, imported from the configuration file when the server started.
      */
     private final Properties serverConfig;
+    /**
+     * The semaphore responsible for the number of requests that can be served simultaneously.
+     */
+    private final Semaphore numberOfConcurrentRequests;
 
     /**
      * The lock responsible for the client sockets array,
@@ -66,8 +71,9 @@ public class AcceptClientsThread extends Thread {
      * @param currentlyOpenedDocuments     Contains a list of the documents being requested at a given point in time.
      * @param requestsInformationLock      The lock responsible for the requests' information array.
      * @param requestsInformation          Contains a list of the requests' information not yet saved to the log.
+     * @param numberOfConcurrentRequests   The semaphore responsible for the number of requests that can be served simultaneously
      */
-    public AcceptClientsThread(ServerSocket serverSocket, Properties serverConfig, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation) {
+    public AcceptClientsThread(ServerSocket serverSocket, Properties serverConfig, Semaphore numberOfConcurrentRequests, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation) {
         this.serverSocket = serverSocket;
         this.serverConfig = serverConfig;
 
@@ -79,6 +85,8 @@ public class AcceptClientsThread extends Thread {
 
         this.requestsInformationLock = requestsInformationLock;
         this.requestsInformation = requestsInformation;
+
+        this.numberOfConcurrentRequests = numberOfConcurrentRequests;
     }
 
     /**
@@ -92,7 +100,7 @@ public class AcceptClientsThread extends Thread {
 
         try {
 
-            ExecutorService clientPool = Executors.newFixedThreadPool(10);
+            // ExecutorService clientPool = Executors.newFixedThreadPool(10);
 
             //* Continuously accept clients, and spawn a thread to serve them
             //noinspection InfiniteLoopStatement
@@ -100,19 +108,22 @@ public class AcceptClientsThread extends Thread {
 
                 Socket newClientSocket = serverSocket.accept(); // Accept a client and create a socket
 
+
                 clientSocketsLock.lock();
                 clientSockets.add(newClientSocket); // Adds the accepted client to the clients array
                 System.out.println("New client accepted: " + newClientSocket.toString());
                 System.out.println("Clients connected: " + clientSockets + "\n");
                 Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
                 clientSocketsLock.unlock();
-                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation, 1, 0); // Create a new thread to serve the accepted client
-                clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
+                ServeClientThread newClientThread = new ServeClientThread(serverConfig, numberOfConcurrentRequests, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation, 1000, 10000); // Create a new thread to serve the accepted client
+//                clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
+                newClientThread.start();
+
 
             }
 
         } catch (IOException exception) {
-            exception.printStackTrace();
+            System.out.println(exception.getMessage());
         }
 
     }

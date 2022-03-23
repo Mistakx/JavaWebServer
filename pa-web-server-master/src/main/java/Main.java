@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Integer.parseInt;
@@ -22,6 +23,10 @@ public class Main {
      * The server's configuration, imported from the configuration file when the server started.
      */
     private static Properties serverConfig;
+    /**
+     * The semaphore responsible for the number of requests that can be served simultaneously.
+     */
+    private static Semaphore numberOfConcurrentRequests;
 
     /**
      * The lock responsible for the client sockets array,
@@ -57,6 +62,7 @@ public class Main {
      */
     private static final ReentrantLock logLock = new ReentrantLock();
 
+
     /**
      * Constructor for the thread responsible for accepting the clients.
      *
@@ -68,6 +74,7 @@ public class Main {
         InputStream configPathInputStream = new FileInputStream(configPath);
         serverConfig.load(configPathInputStream);
         port = parseInt(serverConfig.getProperty("server.port"), 10);
+        numberOfConcurrentRequests = new Semaphore( parseInt(serverConfig.getProperty("server.maximum.requests"), 10));
     }
 
     /**
@@ -151,7 +158,7 @@ public class Main {
             }
 
             //* Create and start one accept clients thread, responsible for accepting the clients
-            AcceptClientsThread acceptClientsThread = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
+            AcceptClientsThread acceptClientsThread = new AcceptClientsThread(serverSocket, serverConfig, numberOfConcurrentRequests, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
             acceptClientsThread.start();
 //            AcceptClientsThread acceptClientsThread1 = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
 //            acceptClientsThread1.start();

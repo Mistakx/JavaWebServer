@@ -3,6 +3,7 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -11,13 +12,18 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ServeClientThread extends Thread {
 
     /**
-     * The client's socket, created when the client requested some route.
-     */
-    private final Socket clientSocket;
-    /**
      * The server's configuration, imported from the configuration file when the server started.
      */
     private final Properties serverConfig;
+    /**
+     * The semaphore responsible for the number of requests that can be served simultaneously.
+     */
+    private final Semaphore numberOfConcurrentRequests;
+
+    /**
+     * The client's socket, created when the client requested some route.
+     */
+    private final Socket clientSocket;
 
     /**
      * The lock responsible for the client sockets array,
@@ -63,6 +69,7 @@ public class ServeClientThread extends Thread {
      * Constructor for the various threads that serve a single accepted request.
      *
      * @param serverConfig                 The server's configuration, imported from the configuration file when the server started.
+     * @param numberOfConcurrentRequests   The semaphore responsible for the number of requests that can be served simultaneously
      * @param clientSocket                 The client's socket, created when the client requested some route.
      * @param clientSocketsLock            The lock responsible for the client sockets array.
      * @param clientSockets                Array that contains the sockets of each request being made at a given point in time.
@@ -73,8 +80,10 @@ public class ServeClientThread extends Thread {
      * @param fileBeingServedTimeout       Timeout in milliseconds if the file is already being served before trying to serve again.
      * @param serveFileTimeout             Timeout in milliseconds to serve the file.
      **/
-    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation, int fileBeingServedTimeout, int serveFileTimeout) {
+    public ServeClientThread(Properties serverConfig, Semaphore numberOfConcurrentRequests, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation, int fileBeingServedTimeout, int serveFileTimeout) {
         this.serverConfig = serverConfig;
+        this.numberOfConcurrentRequests = numberOfConcurrentRequests;
+
         this.clientSocket = clientSocket;
 
         this.clientSocketsLock = clientSocketsLock;
@@ -270,8 +279,11 @@ public class ServeClientThread extends Thread {
     @Override
     public void run() {
 
-
         try {
+
+            System.out.println("Semaforos disponiveis");
+            System.out.println(numberOfConcurrentRequests.availablePermits());
+            numberOfConcurrentRequests.acquire();
 
             String route = parseRequest(); // Gets the route the client is requesting
             System.out.println("Route to serve: " + route);
@@ -320,15 +332,19 @@ public class ServeClientThread extends Thread {
                 }
             }
 
-        } catch (IOException exception) {
 
-            exception.printStackTrace();
+        } catch (IOException | InterruptedException exception) {
+
+            System.out.println(exception.getMessage());
 
         } finally {
 
             clientSocketsLock.lock();
             clientSockets.remove(clientSocket);
             clientSocketsLock.unlock();
+
+            System.out.println("Released semaphore");
+            numberOfConcurrentRequests.release();
 
         }
 
