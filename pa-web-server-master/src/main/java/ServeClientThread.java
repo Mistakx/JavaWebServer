@@ -168,29 +168,6 @@ public class ServeClientThread extends Thread {
 
     }
 
-    // TODO: HTML Error page doesn't exist
-
-    /**
-     * Checks if the HTML error page is properly configured in the server configurations file.
-     *
-     * @return <code>boolean</code>
-     * <ul>
-     *     <li> <strong>true -</strong> if the settings error page is properly configured.</li>
-     *     <li> <strong>false -</strong> if the settings error page isn't properly configured.</li>
-     * </ul>
-     */
-    private boolean htmlErrorPageExists() {
-
-        String pageNotFoundRootPath = serverConfig.getProperty("server.404.root");
-        String pageNotFoundFilename = serverConfig.getProperty("server.404.page");
-        String pageNotFoundFileExtension = serverConfig.getProperty("server.404.page.extension");
-        String pageNotFoundFile = pageNotFoundFilename + "." + pageNotFoundFileExtension;
-
-        File f = new File(pageNotFoundRootPath + "/" + pageNotFoundFile);
-
-        return f.exists() && f.isFile();
-
-    }
 
     /**
      * Reads a document and returns it as an array of bytes.
@@ -219,7 +196,7 @@ public class ServeClientThread extends Thread {
      * @param serveFileTimeout       Timeout in milliseconds to serve the file.
      * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      */
-    private void serveFileContent(String filePath, int fileBeingServedTimeout, int serveFileTimeout) throws IOException {
+    private void serveFileContent(String filePath, String responseCode, int fileBeingServedTimeout, int serveFileTimeout) throws IOException {
 
         boolean servedDocument = false;
 
@@ -251,7 +228,8 @@ public class ServeClientThread extends Thread {
 
                 byte[] fileContent = readBinaryFile(filePath);
                 OutputStream clientOutput = clientSocket.getOutputStream();
-                clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
+                String responseCodeMessage = "HTTP/1.1 " + responseCode + "\r\n";
+                clientOutput.write(responseCodeMessage.getBytes());
                 clientOutput.write(("ContentType: text/html\r\n").getBytes());
                 clientOutput.write("\r\n".getBytes());
                 clientOutput.write(fileContent);
@@ -303,13 +281,12 @@ public class ServeClientThread extends Thread {
                 if (defaultPage.exists() && defaultPage.isFile()) {
 
                     System.out.println("Started trying to serve default route.");
-                    serveFileContent(serverRootPath + "/" + defaultFile, fileBeingServedTimeout, serveFileTimeout);
+                    serveFileContent(serverRootPath + "/" + defaultFile, "200 OK", fileBeingServedTimeout, serveFileTimeout);
 
                 } else {
 
-                    // TODO: Serve predefined file if the error page isn't found
                     System.out.println("Started serving error route. (default route)");
-                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile, fileBeingServedTimeout, serveFileTimeout);
+                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile, "404 Not found", fileBeingServedTimeout, serveFileTimeout);
 
                 }
 
@@ -322,12 +299,11 @@ public class ServeClientThread extends Thread {
 
                 if (nonDefaultPage.exists() && nonDefaultPage.isFile()) {
                     System.out.println("Started trying to serve non default route.");
-                    serveFileContent(serverRootPath + route, fileBeingServedTimeout, serveFileTimeout);
+                    serveFileContent(serverRootPath + route, "200 OK", fileBeingServedTimeout, serveFileTimeout);
                 } else {
 
-                    // TODO: Serve predefined file if the error page isn't found
                     System.out.println("Serving error route. (non default route)");
-                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile, fileBeingServedTimeout, serveFileTimeout);
+                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile, "404 Not found", fileBeingServedTimeout, serveFileTimeout);
                 }
             }
 

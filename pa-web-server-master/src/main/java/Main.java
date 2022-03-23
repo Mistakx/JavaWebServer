@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,6 +70,48 @@ public class Main {
     }
 
     /**
+     * Checks if the HTML error page is properly configured in the server configurations file.
+     *
+     * @return <code>boolean</code>
+     * <ul>
+     *     <li> <strong>true -</strong> if the settings error page is properly configured.</li>
+     *     <li> <strong>false -</strong> if the settings error page isn't properly configured.</li>
+     * </ul>
+     */
+    private static boolean htmlErrorPageExists() {
+
+        String pageNotFoundRootPath = serverConfig.getProperty("server.404.root");
+        String pageNotFoundFilename = serverConfig.getProperty("server.404.page");
+        String pageNotFoundFileExtension = serverConfig.getProperty("server.404.page.extension");
+        String pageNotFoundFile = pageNotFoundFilename + "." + pageNotFoundFileExtension;
+
+        File f = new File(pageNotFoundRootPath + "/" + pageNotFoundFile);
+
+        return f.exists() && f.isFile();
+
+    }
+
+    /**
+     * Checks if the server roots page is properly configured in the server configurations file.
+     *
+     * @return <code>boolean</code>
+     * <ul>
+     *     <li> <strong>true -</strong> if the root is properly configured.</li>
+     *     <li> <strong>false -</strong> if the root isn't properly configured.</li>
+     * </ul>
+     */
+    private static boolean rootExists() {
+
+        String rootPath = serverConfig.getProperty("server.root");
+
+        File f = new File(rootPath);
+
+        return f.exists();
+
+    }
+
+
+    /**
      * The Java main method is the entry point of any java program.
      * @param args Command line arguments in the form of string values.
      */
@@ -76,8 +119,9 @@ public class Main {
 
         if (args.length == 0) {
             System.out.println("Settings config path not passed as argument.");
+        }
 
-        } else {
+        else {
 
             // Initialize server settings
             try {
@@ -85,6 +129,16 @@ public class Main {
             } catch (Exception exception) {
                 System.out.println("Settings config path not found.");
             }
+
+             if (!htmlErrorPageExists()) {
+                System.out.println("Error page path is not properly configured.");
+                return;
+            }
+
+             if (!rootExists()) {
+                 System.out.println("Server root path is not properly configured.");
+                 return;
+             }
 
             //* Create and start one accept clients thread, responsible for accepting the clients
             AcceptClientsThread acceptClientsThread; // The HTTP Server thread responsible for accepting the clients.
