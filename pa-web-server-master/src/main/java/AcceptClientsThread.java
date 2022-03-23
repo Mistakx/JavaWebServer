@@ -1,15 +1,12 @@
-import java.io.*;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static java.lang.Integer.parseInt;
 
 /**
  * The class of the thread responsible for accepting the HTTP server's clients.
@@ -30,32 +27,56 @@ public class AcceptClientsThread extends Thread {
      * The lock responsible for the client sockets array,
      * which contains all the clients that are making requests at a given point in time.
      */
-    private ReentrantLock clientSocketsLock = new ReentrantLock();
+    private ReentrantLock clientSocketsLock;
     /**
      * The server's array that contains the sockets of each request being made at a given point in time.
      */
-    ArrayList<Socket> clientSockets = new ArrayList<Socket>();
+    private ArrayList<Socket> clientSockets;
 
     /**
      * The lock responsible for the opened documents array,
      * which contains a list of the documents the clients are requesting at a given point in time.
      */
-    private ReentrantLock currentlyOpenedDocumentsLock = new ReentrantLock();
+    private ReentrantLock currentlyOpenedDocumentsLock;
     /**
      * Contains a list of the documents being requested at a given point in time.
      */
-    private Set<String> currentlyOpenedDocuments = new HashSet<String>();
+    private Set<String> currentlyOpenedDocuments;
+
+    /**
+     * The lock responsible for the requests' information array,
+     * which contains a list of requests information to save to the log.
+     */
+    private ReentrantLock requestsInformationLock;
+    /**
+     * Contains a list of the requests' information not yet saved to the log.
+     */
+    private Set<String> requestsInformation;
 
     /**
      * Constructor for the thread responsible for accepting the clients.
-     * @param configPath path of the configuration file used by the HTTP server.
+     * @param port                         The port the HTTP server is going to run in.
+     * @param serverConfig                 The server's configuration, imported from the configuration file when the server started.
+     * @param clientSocketsLock            The lock responsible for the client sockets array.
+     * @param clientSockets                The server's array that contains the sockets of each request being made at a given point in time.
+     * @param currentlyOpenedDocumentsLock The lock responsible for the opened documents array.
+     * @param currentlyOpenedDocuments     Contains a list of the documents being requested at a given point in time.
+     * @param requestsInformationLock      The lock responsible for the requests' information array.
+     * @param requestsInformation          Contains a list of the requests' information not yet saved to the log.
      * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
-     **/
-    public AcceptClientsThread(String configPath) throws IOException {
-        serverConfig = new Properties();
-        InputStream configPathInputStream = new FileInputStream(configPath);
-        serverConfig.load(configPathInputStream);
-        port = parseInt(serverConfig.getProperty("server.port"), 10);
+     */
+    public AcceptClientsThread(int port, Properties serverConfig, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Set<String> requestsInformation) throws IOException {
+        this.port = port;
+        this.serverConfig = serverConfig;
+
+        this.clientSocketsLock = clientSocketsLock;
+        this.clientSockets = clientSockets;
+
+        this.currentlyOpenedDocumentsLock = currentlyOpenedDocumentsLock;
+        this.currentlyOpenedDocuments = currentlyOpenedDocuments;
+
+        this.requestsInformationLock = requestsInformationLock;
+        this.requestsInformation = requestsInformation;
     }
 
     /**
@@ -84,9 +105,9 @@ public class AcceptClientsThread extends Thread {
                 clientSockets.add(newClientSocket); // Adds the accepted client to the clients array
                 clientSocketsLock.unlock();
                 System.out.println("New client accepted: " + newClientSocket.toString());
-                System.out.println("Clients connected: " + clientSockets.toString()+ "\n");
+                System.out.println("Clients connected: " + clientSockets.toString() + "\n");
                 Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
-                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments); // Create a new thread to serve the accepted client
+                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation); // Create a new thread to serve the accepted client
                 clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
 
             }

@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Properties;
@@ -41,15 +43,28 @@ public class ServeClientThread extends Thread {
     private final Set<String> currentlyOpenedDocuments;
 
     /**
+     * The lock responsible for the requests' information array,
+     * which contains a list of requests information to save to the log.
+     */
+    private ReentrantLock requestsInformationLock;
+    /**
+     * Contains a list of the requests' information not yet saved to the log.
+     */
+    private Set<String> requestsInformation;
+
+    /**
      * Constructor for the various threads that serve a single accepted request.
-     * @param serverConfig The server's configuration, imported from the configuration file when the server started.
-     * @param clientSocket The client's socket, created when the client requested some route.
-     * @param clientSocketsLock The lock responsible for the client sockets array.
-     * @param clientSockets Array that contains the sockets of each request being made at a given point in time.
+     *
+     * @param serverConfig                 The server's configuration, imported from the configuration file when the server started.
+     * @param clientSocket                 The client's socket, created when the client requested some route.
+     * @param clientSocketsLock            The lock responsible for the client sockets array.
+     * @param clientSockets                Array that contains the sockets of each request being made at a given point in time.
      * @param currentlyOpenedDocumentsLock The lock responsible for the opened documents array.
-     * @param currentlyOpenedDocuments Contains a list of the documents being requested at a given point in time.
+     * @param currentlyOpenedDocuments     Contains a list of the documents being requested at a given point in time.
+     * @param requestsInformationLock      The lock responsible for the requests' information array.
+     * @param requestsInformation          Contains a list of the requests' information not yet saved to the log.
      **/
-    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments) {
+    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Set<String> requestsInformation) {
         this.serverConfig = serverConfig;
         this.clientSocket = clientSocket;
 
@@ -58,10 +73,14 @@ public class ServeClientThread extends Thread {
 
         this.currentlyOpenedDocumentsLock = currentlyOpenedDocumentsLock;
         this.currentlyOpenedDocuments = currentlyOpenedDocuments;
+
+        this.requestsInformationLock = requestsInformationLock;
+        this.requestsInformation = requestsInformation;
     }
 
     /**
      * Reads a document and returns it as an array of bytes.
+     *
      * @param filePath Path of the file to return as an array of bytes.
      * @return <code>byte[]</code> - Array of bytes that constitute a given file.
      */
@@ -80,6 +99,7 @@ public class ServeClientThread extends Thread {
 
     /**
      * Checks if another thread is already serving a document.
+     *
      * @param documentPath The document's path to check.
      * @return <code>boolean</code>
      * <ul>
@@ -117,6 +137,7 @@ public class ServeClientThread extends Thread {
 
     /**
      * Checks if the HTML error page is properly configured in the server configurations file.
+     *
      * @return <code>boolean</code>
      * <ul>
      *     <li> <strong>true -</strong> if the settings error page is properly configured.</li>
@@ -138,6 +159,7 @@ public class ServeClientThread extends Thread {
 
     /**
      * Parses the route the client is requesting from the socket of the request.
+     *
      * @return <code>String</code> - the route the client is requesting.
      * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      */
@@ -148,34 +170,25 @@ public class ServeClientThread extends Thread {
 
         StringBuilder requestBuilder = new StringBuilder();
         String line;
-
+        int lineNumber = 0;
         while (!(line = clientBufferedRead.readLine()).isBlank()) {
+
+            // The first line of the request contains both the request method and the route
+            if (lineNumber == 0) {
+                writeToLog(line.split(" ")[0], line.split(" ")[1]);
+                lineNumber++;
+            }
             requestBuilder.append(line).append("\r\n");
+
         }
 
-//        while (true) {
-//
-//            line = clientBufferedRead.readLine();
-//
-//            // For some unknown reason, sometimes the line read from the buffer is null
-//            if (Objects.isNull(line)) {
-//                break;
-//            }
-//
-//            // If the line isn't null, check if is blank, and append it if it isn't
-//            boolean lineIsBlank = line.isBlank();
-//            if (!lineIsBlank) {
-//                requestBuilder.append(line).append("\r\n");
-//            }
-//
-//        }
+        /*
+        Quite simple parsing, to be expanded by each group
+         */
 
-            /*
-            Quite simple parsing, to be expanded by each group
-             */
         String request = requestBuilder.toString();
         String[] tokens = request.split(" ");
-        System.out.println(request);
+//        System.out.println(request);
 
         return tokens[1];
     }
@@ -238,6 +251,26 @@ public class ServeClientThread extends Thread {
         }
 
     }
+
+    /**
+     * Writes the request information to the server requests information array.
+     * @param requestMethod The request's method (GET, POST).
+     * @param requestRoute The request's route.
+     */
+    private void writeToLog(String requestMethod, String requestRoute) {
+
+        requestsInformationLock.lock();
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss:mm");
+        LocalDateTime now = LocalDateTime.now();
+        String requestInformation = dtf.format(now) + "-Method:" + requestMethod + "-Route:" + requestRoute + "-" + clientSocket.getRemoteSocketAddress();
+        requestsInformation.add(requestInformation);
+        requestsInformationLock.unlock();
+
+        System.out.println(requestInformation);
+
+
+    }
+
 
 
     /**
@@ -310,4 +343,5 @@ public class ServeClientThread extends Thread {
         }
 
     }
+
 }
