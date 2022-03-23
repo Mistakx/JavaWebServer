@@ -28,6 +28,8 @@ public class LogRequestsInformationThread extends Thread {
      */
     private final ReentrantLock logLock;
 
+    private final int timeToWaitBetweenLogs;
+
     /**
      * The constructor of the thread that logs the requests' information.
      *
@@ -36,19 +38,22 @@ public class LogRequestsInformationThread extends Thread {
      * @param requestsInformation     Contains a list of the requests' information not yet saved to the log.
      * @param logLock                 * The lock responsible for the log document.
      */
-    public LogRequestsInformationThread(String logFilePath, ReentrantLock requestsInformationLock, Queue<String> requestsInformation, ReentrantLock logLock) {
+    public LogRequestsInformationThread(String logFilePath, ReentrantLock requestsInformationLock, Queue<String> requestsInformation, ReentrantLock logLock, int timeToWaitBetweenLogs) {
         this.logFilePath = logFilePath;
         this.requestsInformationLock = requestsInformationLock;
         this.requestsInformation = requestsInformation;
         this.logLock = logLock;
+        this.timeToWaitBetweenLogs = timeToWaitBetweenLogs;
     }
 
     /**
      * Logs the first request in the requests' information queue.
      *
+     * @param noRequestsToLogTimeout Time to wait in milliseconds if there are no requests to log.
      * @throws IOException Upon failed or interrupted I/O operations.
+     * @throws InterruptedException Thread is occupied, and is interrupted.
      */
-    private void logFirstRequestsInformation() throws IOException, InterruptedException {
+    private void logFirstRequestsInformation(int noRequestsToLogTimeout) throws IOException, InterruptedException {
 
         String firstRequestInformation;
 
@@ -63,9 +68,11 @@ public class LogRequestsInformationThread extends Thread {
             BufferedWriter logBufferedWriter = new BufferedWriter(logFileWriter);
             logBufferedWriter.append(firstRequestInformation).append("\n");
             logBufferedWriter.flush();
+            System.out.println("First response in queue logged.");
+            System.out.println("Requests waiting in queue to be logged: " + requestsInformation + "\n");
             logLock.unlock();
         } else {
-            Thread.sleep(100);
+            Thread.sleep(noRequestsToLogTimeout);
         }
     }
 
@@ -76,7 +83,8 @@ public class LogRequestsInformationThread extends Thread {
         while (true) {
 
             try {
-                logFirstRequestsInformation();
+                Thread.sleep(1000);
+                logFirstRequestsInformation(1000);
             } catch (IOException | InterruptedException exception) {
                 System.out.println(exception.getMessage());
             }

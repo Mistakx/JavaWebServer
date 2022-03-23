@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -112,41 +113,50 @@ public class Main {
 
     /**
      * The Java main method is the entry point of any java program.
+     *
      * @param args Command line arguments in the form of string values.
      */
     public static void main(String[] args) {
 
         if (args.length == 0) {
             System.out.println("Settings config path not passed as argument.");
-        }
+        } else {
 
-        else {
-
-            // Initialize server settings
+            // Initialize serverSocket settings
             try {
                 initializeSettings(args[0]);
             } catch (Exception exception) {
                 System.out.println("Settings config path not found.");
             }
 
-             if (!htmlErrorPageExists()) {
+            if (!htmlErrorPageExists()) {
                 System.out.println("Error page path is not properly configured.");
                 return;
             }
 
-             if (!rootFolderExists()) {
-                 System.out.println("Server root path is not properly configured.");
-                 return;
-             }
+            if (!rootFolderExists()) {
+                System.out.println("Server root path is not properly configured.");
+                return;
+            }
+
+            // Start the server
+            ServerSocket serverSocket;
+            try {
+                serverSocket = new ServerSocket(port);
+                System.out.println("Started server on port: " + port);
+            } catch (IOException exception) {
+                System.out.println(exception.getMessage());
+                return;
+            }
 
             //* Create and start one accept clients thread, responsible for accepting the clients
             AcceptClientsThread acceptClientsThread; // The HTTP Server thread responsible for accepting the clients.
-            acceptClientsThread = new AcceptClientsThread(port, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
+            acceptClientsThread = new AcceptClientsThread(serverSocket, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
             acceptClientsThread.start();
 
             //* Create and start one log requests thread, responsible for logging the clients' requests
             LogRequestsInformationThread logRequestsInformationThread;
-            logRequestsInformationThread = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock);
+            logRequestsInformationThread = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 1000);
             logRequestsInformationThread.start();
 
             //* Join the started threads

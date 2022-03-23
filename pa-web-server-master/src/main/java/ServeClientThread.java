@@ -50,6 +50,16 @@ public class ServeClientThread extends Thread {
     private final Queue<String> requestsInformation;
 
     /**
+     * Timeout in milliseconds if the file is already being served before trying to serve again.
+     */
+    private final int fileBeingServedTimeout;
+
+    /**
+     * Timeout in milliseconds to serve the file.
+     */
+    private final int serveFileTimeout;
+
+    /**
      * Constructor for the various threads that serve a single accepted request.
      *
      * @param serverConfig                 The server's configuration, imported from the configuration file when the server started.
@@ -60,8 +70,10 @@ public class ServeClientThread extends Thread {
      * @param currentlyOpenedDocuments     Contains a list of the documents being requested at a given point in time.
      * @param requestsInformationLock      The lock responsible for the requests' information array.
      * @param requestsInformation          Contains a list of the requests' information not yet saved to the log.
+     * @param fileBeingServedTimeout       Timeout in milliseconds if the file is already being served before trying to serve again.
+     * @param serveFileTimeout             Timeout in milliseconds to serve the file.
      **/
-    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation) {
+    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation, int fileBeingServedTimeout, int serveFileTimeout) {
         this.serverConfig = serverConfig;
         this.clientSocket = clientSocket;
 
@@ -73,6 +85,9 @@ public class ServeClientThread extends Thread {
 
         this.requestsInformationLock = requestsInformationLock;
         this.requestsInformation = requestsInformation;
+
+        this.fileBeingServedTimeout = fileBeingServedTimeout;
+        this.serveFileTimeout = serveFileTimeout;
     }
 
 
@@ -255,8 +270,6 @@ public class ServeClientThread extends Thread {
     @Override
     public void run() {
 
-        int fileBeingServedTimeout = 1000; // Timeout in milliseconds if the file is already being served before trying to serve again.
-        int serveFileTimeout = 3000; // Timeout in milliseconds to serve the file.
 
         try {
 

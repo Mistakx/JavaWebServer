@@ -1,7 +1,10 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
@@ -13,9 +16,10 @@ import java.util.concurrent.locks.ReentrantLock;
 public class AcceptClientsThread extends Thread {
 
     /**
-     * The port the HTTP server is going to run in.
+     * The HTTP server's socket.
      */
-    private final int port;
+    private final ServerSocket serverSocket;
+
     /**
      * The server's configuration, imported from the configuration file when the server started.
      */
@@ -53,7 +57,8 @@ public class AcceptClientsThread extends Thread {
 
     /**
      * Constructor for the thread responsible for accepting the clients.
-     * @param port                         The port the HTTP server is going to run in.
+     *
+     * @param serverSocket                 The HTTP server's socket.
      * @param serverConfig                 The server's configuration, imported from the configuration file when the server started.
      * @param clientSocketsLock            The lock responsible for the client sockets array.
      * @param clientSockets                The server's array that contains the sockets of each request being made at a given point in time.
@@ -62,8 +67,8 @@ public class AcceptClientsThread extends Thread {
      * @param requestsInformationLock      The lock responsible for the requests' information array.
      * @param requestsInformation          Contains a list of the requests' information not yet saved to the log.
      */
-    public AcceptClientsThread(int port, Properties serverConfig, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation){
-        this.port = port;
+    public AcceptClientsThread(ServerSocket serverSocket, Properties serverConfig, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation) {
+        this.serverSocket = serverSocket;
         this.serverConfig = serverConfig;
 
         this.clientSocketsLock = clientSocketsLock;
@@ -87,16 +92,14 @@ public class AcceptClientsThread extends Thread {
 
         try {
 
-            ServerSocket server = new ServerSocket(port);
             ExecutorService clientPool = Executors.newFixedThreadPool(10);
-            System.out.println("Started server socket on port: " + port);
             System.out.println("Working directory: " + System.getProperty("user.dir") + "\n");
 
             //* Continuously accept clients, and spawn a thread to serve them
             //noinspection InfiniteLoopStatement
             while (true) {
 
-                Socket newClientSocket = server.accept(); // Accept a client and create a socket
+                Socket newClientSocket = serverSocket.accept(); // Accept a client and create a socket
 
                 clientSocketsLock.lock();
                 clientSockets.add(newClientSocket); // Adds the accepted client to the clients array
@@ -104,7 +107,7 @@ public class AcceptClientsThread extends Thread {
                 System.out.println("New client accepted: " + newClientSocket.toString());
                 System.out.println("Clients connected: " + clientSockets + "\n");
                 Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
-                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation); // Create a new thread to serve the accepted client
+                Runnable newClientThread = new ServeClientThread(serverConfig, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation, 1000, 3000); // Create a new thread to serve the accepted client
                 clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
 
             }
