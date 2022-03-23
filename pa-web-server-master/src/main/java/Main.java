@@ -2,10 +2,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Integer.parseInt;
@@ -28,31 +25,35 @@ public class Main {
      * The lock responsible for the client sockets array,
      * which contains all the clients that are making requests at a given point in time.
      */
-    private static ReentrantLock clientSocketsLock = new ReentrantLock();
+    private static final ReentrantLock clientSocketsLock = new ReentrantLock();
     /**
      * The server's array that contains the sockets of each request being made at a given point in time.
      */
-    private static ArrayList<Socket> clientSockets = new ArrayList<Socket>();
+    private static final ArrayList<Socket> clientSockets = new ArrayList<>();
 
     /**
      * The lock responsible for the opened documents array,
      * which contains a list of the documents the clients are requesting at a given point in time.
      */
-    private static ReentrantLock currentlyOpenedDocumentsLock = new ReentrantLock();
+    private static final ReentrantLock currentlyOpenedDocumentsLock = new ReentrantLock();
     /**
      * Contains a list of the documents being requested at a given point in time.
      */
-    private static Set<String> currentlyOpenedDocuments = new HashSet<String>();
+    private static final Set<String> currentlyOpenedDocuments = new HashSet<>();
 
     /**
      * The lock responsible for the requests' information array,
      * which contains a list of requests information to save to the log.
      */
-    private static ReentrantLock requestsInformationLock = new ReentrantLock();
+    private static final ReentrantLock requestsInformationLock = new ReentrantLock();
     /**
      * Contains a list of the requests' information not yet saved to the log.
      */
-    private static Set<String> requestsInformation = new HashSet<String>();
+    private static final Queue<String> requestsInformation = new PriorityQueue<>();
+    /**
+     * The lock responsible for the log document, which contains a list of requests information.
+     */
+    private static final ReentrantLock logLock = new ReentrantLock();
 
     /**
      * Constructor for the thread responsible for accepting the clients.
@@ -75,7 +76,6 @@ public class Main {
 
         if (args.length == 0) {
             System.out.println("Settings config path not passed as argument.");
-            return;
 
         } else {
 
@@ -86,22 +86,20 @@ public class Main {
                 System.out.println("Settings config path not found.");
             }
 
+            //* Create and start one accept clients thread, responsible for accepting the clients
             AcceptClientsThread acceptClientsThread; // The HTTP Server thread responsible for accepting the clients.
-
-            //* Create the main server thread, responsible for accepting the clients
-            try {
-                acceptClientsThread = new AcceptClientsThread(port, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
-            } catch (IOException configFileException) {
-                System.out.println(configFileException.getMessage());
-                return;
-            }
-
-            //* Start the main server thread
+            acceptClientsThread = new AcceptClientsThread(port, serverConfig, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation);
             acceptClientsThread.start();
 
-            //* Join the main server thread
+            //* Create and start one log requests thread, responsible for logging the clients' requests
+            LogRequestsInformationThread logRequestsInformationThread;
+            logRequestsInformationThread = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock);
+            logRequestsInformationThread.start();
+
+            //* Join the started threads
             try {
                 acceptClientsThread.join();
+                logRequestsInformationThread.join();
             } catch (InterruptedException exception) {
                 System.out.println(exception.getMessage());
             }

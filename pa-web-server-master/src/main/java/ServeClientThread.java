@@ -2,10 +2,7 @@ import java.io.*;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -46,11 +43,11 @@ public class ServeClientThread extends Thread {
      * The lock responsible for the requests' information array,
      * which contains a list of requests information to save to the log.
      */
-    private ReentrantLock requestsInformationLock;
+    private final ReentrantLock requestsInformationLock;
     /**
      * Contains a list of the requests' information not yet saved to the log.
      */
-    private Set<String> requestsInformation;
+    private final Queue<String> requestsInformation;
 
     /**
      * Constructor for the various threads that serve a single accepted request.
@@ -64,7 +61,7 @@ public class ServeClientThread extends Thread {
      * @param requestsInformationLock      The lock responsible for the requests' information array.
      * @param requestsInformation          Contains a list of the requests' information not yet saved to the log.
      **/
-    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Set<String> requestsInformation) {
+    public ServeClientThread(Properties serverConfig, Socket clientSocket, ReentrantLock clientSocketsLock, ArrayList<Socket> clientSockets, ReentrantLock currentlyOpenedDocumentsLock, Set<String> currentlyOpenedDocuments, ReentrantLock requestsInformationLock, Queue<String> requestsInformation) {
         this.serverConfig = serverConfig;
         this.clientSocket = clientSocket;
 
@@ -78,82 +75,21 @@ public class ServeClientThread extends Thread {
         this.requestsInformation = requestsInformation;
     }
 
-    /**
-     * Reads a document and returns it as an array of bytes.
-     *
-     * @param filePath Path of the file to return as an array of bytes.
-     * @return <code>byte[]</code> - Array of bytes that constitute a given file.
-     */
-    private byte[] readBinaryFile(String filePath) {
-        byte[] content = new byte[0];
-        File f = new File(filePath);
-        try {
-            FileInputStream fileInputStream = new FileInputStream(f);
-            content = fileInputStream.readAllBytes();
-            return content;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return content;
-        }
-    }
 
     /**
-     * Checks if another thread is already serving a document.
+     * Writes the request information to the server requests information array.
      *
-     * @param documentPath The document's path to check.
-     * @return <code>boolean</code>
-     * <ul>
-     * <li> <strong>true - </strong>the document is already being served by another thread. </li>
-     * <li> <strong>false - </strong>the document isn't already being served by another thread. </li>
-     * </ul>
+     * @param requestMethod The request's method (GET, POST).
+     * @param requestRoute  The request's route.
      */
-    private boolean documentAlreadyBeingServed(String documentPath) {
+    private void writeToLog(String requestMethod, String requestRoute) {
 
-        if (currentlyOpenedDocumentsLock.isLocked()) {
-            System.out.println("Another thread is currently accessing the opened documents lock.");
-        }
-
-        currentlyOpenedDocumentsLock.lock();
-        System.out.println("Acquired opened documents lock.");
-        System.out.println("Opened documents: " + currentlyOpenedDocuments.toString());
-
-        if (currentlyOpenedDocuments.contains(documentPath)) {
-
-            System.out.println("Another thread has the document currently opened.");
-            currentlyOpenedDocumentsLock.unlock();
-            System.out.println("Unlocked documents opened lock.\n");
-            return true;
-
-        } else {
-
-            System.out.println("No thread has the document currently opened.");
-            currentlyOpenedDocumentsLock.unlock();
-            System.out.println("Unlocked documents opened lock.\n");
-            return false;
-
-        }
-
-    }
-
-    /**
-     * Checks if the HTML error page is properly configured in the server configurations file.
-     *
-     * @return <code>boolean</code>
-     * <ul>
-     *     <li> <strong>true -</strong> if the settings error page is properly configured.</li>
-     *     <li> <strong>false -</strong> if the settings error page isn't properly configured.</li>
-     * </ul>
-     */
-    private boolean htmlErrorPageExists() {
-
-        String pageNotFoundRootPath = serverConfig.getProperty("server.404.root");
-        String pageNotFoundFilename = serverConfig.getProperty("server.404.page");
-        String pageNotFoundFileExtension = serverConfig.getProperty("server.404.page.extension");
-        String pageNotFoundFile = pageNotFoundFilename + "." + pageNotFoundFileExtension;
-
-        File f = new File(pageNotFoundRootPath + "/" + pageNotFoundFile);
-
-        return f.exists() && f.isFile();
+        requestsInformationLock.lock();
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss:mm");
+        LocalDateTime now = LocalDateTime.now();
+        String requestInformation = dtf.format(now) + "-Method:" + requestMethod + "-Route:" + requestRoute + "-" + clientSocket.getRemoteSocketAddress().toString().split(":")[0];
+        requestsInformation.add(requestInformation);
+        requestsInformationLock.unlock();
 
     }
 
@@ -193,13 +129,97 @@ public class ServeClientThread extends Thread {
         return tokens[1];
     }
 
+
+    /**
+     * Checks if another thread is already serving a document.
+     *
+     * @param documentPath The document's path to check.
+     * @return <code>boolean</code>
+     * <ul>
+     * <li> <strong>true - </strong>the document is already being served by another thread. </li>
+     * <li> <strong>false - </strong>the document isn't already being served by another thread. </li>
+     * </ul>
+     */
+    private boolean documentAlreadyBeingServed(String documentPath) {
+
+        if (currentlyOpenedDocumentsLock.isLocked()) {
+            System.out.println("Another thread is currently accessing the opened documents lock.");
+        }
+
+        currentlyOpenedDocumentsLock.lock();
+        System.out.println("Acquired opened documents lock.");
+        System.out.println("Opened documents: " + currentlyOpenedDocuments.toString());
+
+        if (currentlyOpenedDocuments.contains(documentPath)) {
+
+            System.out.println("Another thread has the document currently opened.");
+            currentlyOpenedDocumentsLock.unlock();
+            System.out.println("Unlocked documents opened lock.\n");
+            return true;
+
+        } else {
+
+            System.out.println("No thread has the document currently opened.");
+            currentlyOpenedDocumentsLock.unlock();
+            System.out.println("Unlocked documents opened lock.\n");
+            return false;
+
+        }
+
+    }
+
+    // TODO: HTML Error page doesn't exist
+
+    /**
+     * Checks if the HTML error page is properly configured in the server configurations file.
+     *
+     * @return <code>boolean</code>
+     * <ul>
+     *     <li> <strong>true -</strong> if the settings error page is properly configured.</li>
+     *     <li> <strong>false -</strong> if the settings error page isn't properly configured.</li>
+     * </ul>
+     */
+    private boolean htmlErrorPageExists() {
+
+        String pageNotFoundRootPath = serverConfig.getProperty("server.404.root");
+        String pageNotFoundFilename = serverConfig.getProperty("server.404.page");
+        String pageNotFoundFileExtension = serverConfig.getProperty("server.404.page.extension");
+        String pageNotFoundFile = pageNotFoundFilename + "." + pageNotFoundFileExtension;
+
+        File f = new File(pageNotFoundRootPath + "/" + pageNotFoundFile);
+
+        return f.exists() && f.isFile();
+
+    }
+
+    /**
+     * Reads a document and returns it as an array of bytes.
+     *
+     * @param filePath Path of the file to return as an array of bytes.
+     * @return <code>byte[]</code> - Array of bytes that constitute a given file.
+     */
+    private byte[] readBinaryFile(String filePath) {
+        byte[] content = new byte[0];
+        File f = new File(filePath);
+        try {
+            FileInputStream fileInputStream = new FileInputStream(f);
+            content = fileInputStream.readAllBytes();
+            return content;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return content;
+        }
+    }
+
     /**
      * Serves a file's content to the client, if that file is not already being served by another thread.
      *
-     * @param filePath the path of the file that is going to be served to the client.
+     * @param filePath               The path of the file that is going to be served to the client.
+     * @param fileBeingServedTimeout Timeout in milliseconds if the file is already being served before trying to serve again.
+     * @param serveFileTimeout       Timeout in milliseconds to serve the file.
      * @throws IOException if an I/O error occurs when creating the output stream or if the socket is not connected.
      */
-    private void serveFileContent(String filePath) throws IOException {
+    private void serveFileContent(String filePath, int fileBeingServedTimeout, int serveFileTimeout) throws IOException {
 
         boolean servedDocument = false;
 
@@ -209,7 +229,7 @@ public class ServeClientThread extends Thread {
             // If document is already being served, wait till it isn't
             if (documentAlreadyBeingServed(filePath)) {
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(fileBeingServedTimeout);
                 } catch (Exception exception) {
                     System.out.println(exception.getMessage());
                 }
@@ -223,9 +243,8 @@ public class ServeClientThread extends Thread {
                 currentlyOpenedDocuments.add(filePath);
                 currentlyOpenedDocumentsLock.unlock();
 
-                //* Sleep 10 seconds
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(serveFileTimeout);
                 } catch (Exception exception) {
                     System.out.println(exception.getMessage());
                 }
@@ -253,31 +272,13 @@ public class ServeClientThread extends Thread {
     }
 
     /**
-     * Writes the request information to the server requests information array.
-     * @param requestMethod The request's method (GET, POST).
-     * @param requestRoute The request's route.
-     */
-    private void writeToLog(String requestMethod, String requestRoute) {
-
-        requestsInformationLock.lock();
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss:mm");
-        LocalDateTime now = LocalDateTime.now();
-        String requestInformation = dtf.format(now) + "-Method:" + requestMethod + "-Route:" + requestRoute + "-" + clientSocket.getRemoteSocketAddress();
-        requestsInformation.add(requestInformation);
-        requestsInformationLock.unlock();
-
-        System.out.println(requestInformation);
-
-
-    }
-
-
-
-    /**
      * Parses the request, and serves the corresponding file to the client.
      */
     @Override
     public void run() {
+
+        int fileBeingServedTimeout = 1000; // Timeout in milliseconds if the file is already being served before trying to serve again.
+        int serveFileTimeout = 3000; // Timeout in milliseconds to serve the file.
 
         try {
 
@@ -302,13 +303,13 @@ public class ServeClientThread extends Thread {
                 if (defaultPage.exists() && defaultPage.isFile()) {
 
                     System.out.println("Started trying to serve default route.");
-                    serveFileContent(serverRootPath + "/" + defaultFile);
+                    serveFileContent(serverRootPath + "/" + defaultFile, fileBeingServedTimeout, serveFileTimeout);
 
                 } else {
 
                     // TODO: Serve predefined file if the error page isn't found
                     System.out.println("Started serving error route. (default route)");
-                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile);
+                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile, fileBeingServedTimeout, serveFileTimeout);
 
                 }
 
@@ -321,12 +322,12 @@ public class ServeClientThread extends Thread {
 
                 if (nonDefaultPage.exists() && nonDefaultPage.isFile()) {
                     System.out.println("Started trying to serve non default route.");
-                    serveFileContent(serverRootPath + route);
+                    serveFileContent(serverRootPath + route, fileBeingServedTimeout, serveFileTimeout);
                 } else {
 
                     // TODO: Serve predefined file if the error page isn't found
                     System.out.println("Serving error route. (non default route)");
-                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile);
+                    serveFileContent(pageNotFoundRootPath + "/" + pageNotFoundFile, fileBeingServedTimeout, serveFileTimeout);
                 }
             }
 
