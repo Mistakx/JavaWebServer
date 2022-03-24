@@ -15,7 +15,7 @@ class MainTest {
 
     private static final String serverConfigPath = "server/server.config";
     private static final String logFilePath = "logFile.txt";
-    private static final int requestTimeout = 15000;
+    private static final int requestTimeout = 100000;
 
     @BeforeAll
     @DisplayName("Server starts.")
@@ -92,7 +92,6 @@ class MainTest {
     }
 
     @DisplayName("Server sends the same page to two different clients simultaneously, to test the synchronization.")
-    @Test
     @RepeatedTest(5)
     void serverSendsPageToTwoDifferentClients() throws IOException, InterruptedException {
         Properties serverConfig = new Properties();
