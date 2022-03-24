@@ -281,8 +281,6 @@ public class ServeClientThread extends Thread {
 
         try {
 
-            System.out.println("Semaforos disponiveis");
-            System.out.println(numberOfConcurrentRequests.availablePermits());
             numberOfConcurrentRequests.acquire();
 
             String route = parseRequest(); // Gets the route the client is requesting
@@ -343,7 +341,6 @@ public class ServeClientThread extends Thread {
             clientSockets.remove(clientSocket);
             clientSocketsLock.unlock();
 
-            System.out.println("Released semaphore");
             numberOfConcurrentRequests.release();
 
         }
