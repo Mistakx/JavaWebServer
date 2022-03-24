@@ -13,7 +13,7 @@ import static java.lang.Integer.parseInt;
 /**
  * The main class of the HTTP server.
  */
-public class Main {
+public class WebServer {
 
     /**
      * The port the HTTP server is going to run in.
