@@ -1,3 +1,4 @@
+import com.sun.tools.javac.Main;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,13 +24,18 @@ class MainTest {
         InputStream configPathInputStream = new FileInputStream(serverConfigPath);
         serverConfig.load(configPathInputStream);
         new Thread(() -> {
-            Main.main(new String[]{serverConfigPath});
             try {
-                Thread.sleep(100);
+                Main.main(new String[]{serverConfigPath});
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }).start();
+
     }
 
     @DisplayName("Server accepting connections")
@@ -47,7 +53,7 @@ class MainTest {
                 serverExists[0] = true;
                 DataOutputStream serverDataOutputStream = new DataOutputStream(serverSocket.getOutputStream());
                 // https://www.javatpoint.com/socket-programming
-                serverDataOutputStream.writeUTF("Hello Server");
+                serverDataOutputStream.writeUTF("");
                 serverDataOutputStream.flush();
                 serverDataOutputStream.close();
             } catch (IOException ignored) {
@@ -56,7 +62,6 @@ class MainTest {
         testServerConnectionThread.start();
         testServerConnectionThread.join();
         assertTrue(serverExists[0]);
-
 
     }
 }
