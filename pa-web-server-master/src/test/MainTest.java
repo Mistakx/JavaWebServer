@@ -1,16 +1,15 @@
-import com.sun.tools.javac.Main;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Integer.parseInt;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
@@ -24,77 +23,67 @@ class MainTest {
         InputStream configPathInputStream = new FileInputStream(serverConfigPath);
         serverConfig.load(configPathInputStream);
         new Thread(() -> {
-            try {
-                Main.main(new String[]{serverConfigPath});
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            WebServer.main(new String[]{serverConfigPath});
         }).start();
 
     }
 
-    @DisplayName("Server accepting connections")
+    @DisplayName("Server sends index page.")
     @Test
-    void serverAcceptingConnections() throws IOException, InterruptedException {
+    void serverSendsIndexPage() throws IOException, InterruptedException {
         Properties serverConfig = new Properties();
         InputStream configPathInputStream = new FileInputStream(serverConfigPath);
         serverConfig.load(configPathInputStream);
         int serverPort = parseInt(serverConfig.getProperty("server.port"), 10);
 
         // https://stackoverflow.com/questions/3489543/how-to-call-a-method-with-a-separate-thread-in-java
-        final boolean[] serverExists = {false};
+        AtomicInteger responseCode = new AtomicInteger();
         Thread testServerConnectionThread = new Thread(() -> {
 
-            // Sleep 2 seconds to wait for server start
             try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+                URL url = new URL("http://127.0.0.1:" + serverPort);
+                HttpURLConnection serverConnection = (HttpURLConnection) url.openConnection();
+                serverConnection.setRequestMethod("GET");
+                responseCode.set(serverConnection.getResponseCode());
+                responseCode.set(serverConnection.getResponseCode());
 
-            // Try to connect to server
-            try (Socket serverSocket = new Socket("127.0.0.1", serverPort)) {
-                serverExists[0] = true;
-                DataOutputStream serverDataOutputStream = new DataOutputStream(serverSocket.getOutputStream());
-                // https://www.javatpoint.com/socket-programming
-                serverDataOutputStream.writeUTF("");
-                serverDataOutputStream.flush();
-                serverDataOutputStream.close();
-            } catch (IOException ignored) {
+            } catch (Exception exception) {
+                exception.printStackTrace();
             }
 
         });
         testServerConnectionThread.start();
         testServerConnectionThread.join();
-        assertTrue(serverExists[0]);
-
+        assertEquals(200, responseCode.get());
     }
 
-    @DisplayName("Server returning page")
+    @DisplayName("Server sends error page.")
     @Test
-    void serverSendingPage() throws IOException, InterruptedException {
+    void serverSendsErrorPage() throws IOException, InterruptedException {
         Properties serverConfig = new Properties();
         InputStream configPathInputStream = new FileInputStream(serverConfigPath);
         serverConfig.load(configPathInputStream);
         int serverPort = parseInt(serverConfig.getProperty("server.port"), 10);
 
         // https://stackoverflow.com/questions/3489543/how-to-call-a-method-with-a-separate-thread-in-java
-        final boolean[] serverExists = {false};
+        AtomicInteger responseCode = new AtomicInteger();
         Thread testServerConnectionThread = new Thread(() -> {
 
-            try (Socket serverSocket = new Socket("127.0.0.1", serverPort)) {
-                serverExists[0] = true;
-                DataOutputStream serverDataOutputStream = new DataOutputStream(serverSocket.getOutputStream());
-                // https://www.javatpoint.com/socket-programming
-                serverDataOutputStream.writeUTF("");
-                serverDataOutputStream.flush();
-                serverDataOutputStream.close();
-            } catch (IOException ignored) {
+            try {
+                URL url = new URL("http://127.0.0.1:" + serverPort + "/invalidPath");
+                HttpURLConnection serverConnection = (HttpURLConnection) url.openConnection();
+                serverConnection.setRequestMethod("GET");
+                responseCode.set(serverConnection.getResponseCode());
+
+            } catch (Exception exception) {
+                exception.printStackTrace();
             }
+
         });
         testServerConnectionThread.start();
         testServerConnectionThread.join();
-        assertTrue(serverExists[0]);
+        assertEquals(404, responseCode.get());
     }
+
 
 }
