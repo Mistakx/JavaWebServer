@@ -150,6 +150,9 @@ public class ServeClientThread extends Thread {
             if (!lineIsBlank) {
                 requestBuilder.append(line).append("\r\n");
             }
+            if (lineIsBlank) {
+                break;
+            }
 
         }
 
@@ -159,7 +162,8 @@ public class ServeClientThread extends Thread {
 
         String request = requestBuilder.toString();
         String[] tokens = request.split(" ");
-//        System.out.println(request);
+        System.out.println("request");
+        System.out.println(request);
 
         return tokens[1];
     }
@@ -292,6 +296,7 @@ public class ServeClientThread extends Thread {
 
         try {
 
+            System.out.println(numberOfConcurrentRequests.availablePermits());
             numberOfConcurrentRequests.acquire();
 
             String route = parseRequest(); // Gets the route the client is requesting
