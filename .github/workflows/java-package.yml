@@ -1,12 +1,21 @@
 name: Build package, documentation, and test coverage
 
 on:
-  pull_request:
+
+  workflow_dispatch:
     branches:
       - master
+      - deleteCommit
+      
+  pull_request:
+
+    branches:
+      - master
+      - deleteCommit
   push:
     branches:
       - master
+      - deleteCommit
 
 jobs:
   build:
