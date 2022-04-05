@@ -35,14 +35,14 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-artifact
-          path: target/
+          path: pa-web-server-master/target/
       - name: Upload the documentation artifact
         uses: actions/upload-artifact@v2
         with:
           name: documentation-artifact
-          path: target/apidocs/
+          path: pa-web-server-master/target/apidocs/
       - name: Upload the test coverage artifact
         uses: actions/upload-artifact@v2
         with:
           name: test-coverage-artifact
-          path: target/site/jacoco/
+          path: pa-web-server-master/target/site/jacoco/
