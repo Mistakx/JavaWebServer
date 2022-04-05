@@ -131,14 +131,25 @@ public class ServeClientThread extends Thread {
         StringBuilder requestBuilder = new StringBuilder();
         String line;
         int lineNumber = 0;
-        while (!(line = clientBufferedRead.readLine()).isBlank()) {
 
-            // The first line of the request contains both the request method and the route
+        while (true) {
+
+            line = clientBufferedRead.readLine();
+
             if (lineNumber == 0) {
                 writeToLog(line.split(" ")[0], line.split(" ")[1]);
                 lineNumber++;
             }
-            requestBuilder.append(line).append("\r\n");
+
+            if (Objects.isNull(line)) {
+                break;
+            }
+
+            // If the line isn't null, check if is blank, and append it if it isn't
+            boolean lineIsBlank = line.isBlank();
+            if (!lineIsBlank) {
+                requestBuilder.append(line).append("\r\n");
+            }
 
         }
 
