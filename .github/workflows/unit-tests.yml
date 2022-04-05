@@ -32,4 +32,5 @@ jobs:
           distribution: 'microsoft'
           java-version: '17'
       - name: Build with Maven on ${{ matrix.os }}
+        working-directory: ./pa-web-server-master
         run: mvn package

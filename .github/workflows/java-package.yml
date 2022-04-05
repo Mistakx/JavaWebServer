@@ -6,7 +6,7 @@ on:
     branches:
       - master
       - deleteCommit
-      
+
   pull_request:
 
     branches:
@@ -29,6 +29,7 @@ jobs:
           distribution: 'microsoft'
           java-version: '17'
       - name: Build with Maven
+        working-directory: ./pa-web-server-master
         run: mvn package
       - name: Upload the build artifact
         uses: actions/upload-artifact@v2
