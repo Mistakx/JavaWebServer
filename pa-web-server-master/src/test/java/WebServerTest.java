@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.lang.Integer.parseInt;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 class MainTest {
 
     private static final String serverConfigPath = "server/server.config";
