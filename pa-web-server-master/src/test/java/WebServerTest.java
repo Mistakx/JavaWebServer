@@ -145,7 +145,7 @@ class MainTest {
 
     @DisplayName("Server logs the request for the index page.")
     @Test
-    void serverLogsIndexPageRequest() throws IOException, InterruptedException {
+    void serverLogsIndexPageRequest() throws IOException {
         Properties serverConfig = new Properties();
         InputStream configPathInputStream = new FileInputStream(serverConfigPath);
         serverConfig.load(configPathInputStream);
