@@ -30,7 +30,7 @@ jobs:
           java-version: '17'
       - name: Build with Maven
         working-directory: ./pa-web-server-master
-        run: mvn package
+        run: mvn package -Dshow=private
       - name: Upload the build artifact
         uses: actions/upload-artifact@v2
         with:
