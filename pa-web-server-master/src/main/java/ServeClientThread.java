@@ -162,8 +162,8 @@ public class ServeClientThread extends Thread {
 
         String request = requestBuilder.toString();
         String[] tokens = request.split(" ");
-        System.out.println("Request:");
-        System.out.println(request + "\n");
+//        System.out.println("Request:");
+//        System.out.println(request + "\n");
 
         return tokens[1];
     }

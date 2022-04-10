@@ -171,7 +171,7 @@ public class WebServer {
 
             //* Create and start one log requests thread, responsible for logging the clients' requests
             LogRequestsInformationThread logRequestsInformationThread = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
-            logRequestsInformationThread.start();
+            //logRequestsInformationThread.start();
 //            LogRequestsInformationThread logRequestsInformationThread1 = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
 //            logRequestsInformationThread1.start();
 //            LogRequestsInformationThread logRequestsInformationThread2 = new LogRequestsInformationThread("./logFile.txt", requestsInformationLock, requestsInformation, logLock, 0);
@@ -191,3 +191,32 @@ public class WebServer {
         }
     }
 }
+
+// Things to show in the project presentation:
+
+// 1 - Error page path and settings path not properly configured.
+
+// Maximum requests - 15, no timeouts, no logging thread.
+// 2 - Server functioning without timeouts and logging thread.
+// 3 - Test error route for error page.
+
+// Maximum requests - 2 , no logging thread.
+// Concurrency test 1 - Retry timeout - 3 sec, serve timout - 50 sec. Try to access the same documents in two different browser tabs.
+// Concurrency test 2 - Serve timeout set to 1 sec. Try to access the same documents in two different browser tabs.
+
+// Maximum requests - 0, no logging thread.
+// Number of concurrent clients test 1 - Server functioning with maximum requests set to 0.
+// Maximum requests - 2 , no logging thread.
+// Number of concurrent clients test 2 - serve timout - 50 sec. Try to access a different document in two different browser tabs.
+// Maximum requests - 1 , no logging thread.
+// Number of concurrent clients test 3 - serve timout - 50 sec. Try to access a different document in two different browser tabs.
+
+// Serve timeout - 0 sec, logging thread timeout - 5 sec
+// Logging thread test - Make multiple requests to the server.
+
+// Explain the AcceptClients thread and the LogRequests thread could be initialized multiple times in parallel,
+// without breaking concurrency.
+
+// Show unit tests.
+
+

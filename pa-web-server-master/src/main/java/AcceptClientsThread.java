@@ -6,7 +6,6 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -115,8 +114,7 @@ public class AcceptClientsThread extends Thread {
                 System.out.println("Clients connected: " + clientSockets + "\n");
                 Socket clientAdded = clientSockets.get(clientSockets.size() - 1);
                 clientSocketsLock.unlock();
-                ServeClientThread newClientThread = new ServeClientThread(serverConfig, numberOfConcurrentRequests, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation, 1000, 10000); // Create a new thread to serve the accepted client
-//                clientPool.execute(newClientThread); // Add the thread to serve the client to the thread pool, and execute it
+                ServeClientThread newClientThread = new ServeClientThread(serverConfig, numberOfConcurrentRequests, clientAdded, clientSocketsLock, clientSockets, currentlyOpenedDocumentsLock, currentlyOpenedDocuments, requestsInformationLock, requestsInformation, 0, 0); // Create a new thread to serve the accepted client
                 newClientThread.start();
 
 
@@ -129,3 +127,4 @@ public class AcceptClientsThread extends Thread {
     }
 
 }
+
